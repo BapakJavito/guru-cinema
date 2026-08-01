@@ -298,7 +298,11 @@
   });
   months.sort();
 
-  var currentIndex = 0;
+  var todayStr = new Date().toISOString().slice(0, 10);
+  var upcomingFilm = films.find(function(f) { return f.date >= todayStr; });
+  var startKey = upcomingFilm ? monthKey(upcomingFilm.date) : months[months.length - 1];
+  var currentIndex = months.indexOf(startKey);
+  if (currentIndex === -1) currentIndex = 0;
 
   function fmtRuntime(mins) {
     var h = Math.floor(mins / 60), m = mins % 60;
