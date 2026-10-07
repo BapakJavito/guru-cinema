@@ -250,9 +250,9 @@
     {date:'2026-09-27', day:'sun', title:'Ratatouille', duration:111, genre:'Animation', trailer:'https://www.youtube.com/watch?v=NgsQ8mVkN8w', slug:'ratatouille'},
     {date:'2026-09-30', day:'wed', title:'Blade Runner 2049', duration:164, genre:'Sci-Fi', trailer:'https://www.youtube.com/watch?v=geFtxCSz8xI', slug:'blade-runner-2049'},
     {date:'2026-10-04', day:'sun', title:'Up', duration:96, genre:'Animation', trailer:'https://www.youtube.com/watch?v=qas5lWp7_R0', slug:'up'},
-    {date:'2026-10-07', day:'wed', title:'Parasite', duration:132, genre:'Thriller', vo:true, trailer:'https://www.youtube.com/watch?v=5xH0HfJHsaY', slug:'parasite'},
+    {date:'2026-10-07', day:'wed', title:'Ghost Dog: The Way of the Samurai', duration:116, genre:'Crime', trailer:'https://www.youtube.com/watch?v=uLHeMzjQ29E', slug:'ghost-dog-the-way-of-the-samurai'},
     {date:'2026-10-11', day:'sun', title:'Ghostbusters', duration:105, genre:'Comedy', trailer:'https://www.youtube.com/watch?v=6hDkhw5Wkas', slug:'ghostbusters'},
-    {date:'2026-10-14', day:'wed', title:'Ghost Dog: The Way of the Samurai', duration:116, genre:'Crime', trailer:'https://www.youtube.com/watch?v=uLHeMzjQ29E', slug:'ghost-dog-the-way-of-the-samurai'},
+    {date:'2026-10-14', day:'wed', title:'Parasite', duration:132, genre:'Thriller', vo:true, trailer:'https://www.youtube.com/watch?v=5xH0HfJHsaY', slug:'parasite'},
     {date:'2026-10-18', day:'sun', title:'Edward Scissorhands', duration:105, genre:'Fantasy', trailer:'https://www.youtube.com/watch?v=tSzo2O1s7Zo', slug:'edward-scissorhands'},
     {date:'2026-10-21', day:'wed', title:'Trainspotting', duration:94, genre:'Drama', trailer:'https://www.youtube.com/watch?v=C2oF-rOF68Y', slug:'trainspotting'},
     {date:'2026-10-25', day:'sun', title:'Corpse Bride', duration:77, genre:'Animation', trailer:'https://www.youtube.com/watch?v=MZI4q8CRvcA', slug:'corpse-bride'},
@@ -328,15 +328,57 @@
 
   var reel = document.getElementById('filmList');
 
-  var todayStr = new Date().toISOString().slice(0, 10);
-  var targetIndex = films.findIndex(function(f) { return f.date >= todayStr; });
-  if (targetIndex === -1) targetIndex = films.length - 1;
+  function venueToday() {
+    try {
+      return new Intl.DateTimeFormat('en-CA', {timeZone: 'Asia/Makassar', year: 'numeric', month: '2-digit', day: '2-digit'}).format(new Date());
+    } catch (e) {
+      var d = new Date();
+      return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+    }
+  }
 
-  setTimeout(function() {
-    reel.scrollTop = targetIndex * reel.clientHeight;
-  }, 0);
+  function nextFilmIndex() {
+    var today = venueToday();
+    var i = films.findIndex(function(f) { return f.date >= today; });
+    return i === -1 ? films.length - 1 : i;
+  }
 
-  var lastSnapIndex = targetIndex;
+  var userMoved = false;
+  var positionedDay = null;
+  var lastSnapIndex = 0;
+
+  function goToNextFilm() {
+    var idx = nextFilmIndex();
+    var card = reel.children[idx];
+    if (!card) return;
+    lastSnapIndex = idx;
+    positionedDay = venueToday();
+    reel.scrollTop = card.getBoundingClientRect().top - reel.getBoundingClientRect().top + reel.scrollTop;
+  }
+
+  ['touchstart', 'wheel', 'mousedown', 'keydown'].forEach(function(ev) {
+    reel.addEventListener(ev, function() { userMoved = true; }, {passive: true});
+  });
+
+  function recenterIfUntouched() { if (!userMoved) goToNextFilm(); }
+
+  goToNextFilm();
+  setTimeout(recenterIfUntouched, 0);
+  setTimeout(recenterIfUntouched, 250);
+  setTimeout(recenterIfUntouched, 800);
+  window.addEventListener('load', recenterIfUntouched);
+  window.addEventListener('resize', recenterIfUntouched);
+  window.addEventListener('orientationchange', recenterIfUntouched);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(recenterIfUntouched);
+
+  function refreshIfNewDay() {
+    if (venueToday() !== positionedDay) { userMoved = false; goToNextFilm(); }
+  }
+  window.addEventListener('pageshow', refreshIfNewDay);
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) refreshIfNewDay();
+  });
+
   var scrollTimer = null;
   reel.addEventListener('scroll', function() {
     if (scrollTimer) clearTimeout(scrollTimer);
